@@ -22,18 +22,22 @@ app.mount("/dzi", StaticFiles(directory="dzi"), name="dzi")
 
 TEMP_FOLDER = "temp"
 DZI_FOLDER = "dzi"
+DEFAULT_IMAGE_PATH = "temp/sample.jp2"
+DEFAULT_DZI_PATH = f"{DZI_FOLDER}/sample"
 
 # Verificar si las carpetas existen, de lo contrario, crearlas
 for folder in [TEMP_FOLDER, DZI_FOLDER]:
     if not os.path.exists(folder):
         os.makedirs(folder)
 
+# Generar DZI por defecto al inicio del servidor
+if os.path.exists(DEFAULT_IMAGE_PATH):
+    subprocess.run(["vips", "dzsave", DEFAULT_IMAGE_PATH, DEFAULT_DZI_PATH])
+
 @app.post("/upload/")
 async def upload_image(file: UploadFile = File(...)):
     # Generar un identificador único para la imagen
     unique_id = uuid.uuid4().hex
-
-    # Generar las rutas para el archivo original y el DZI
     image_path = f"{TEMP_FOLDER}/{unique_id}.jp2"
     dzi_path = f"{DZI_FOLDER}/{unique_id}"
 
@@ -49,26 +53,23 @@ async def upload_image(file: UploadFile = File(...)):
     else:
         return {"message": "Error al generar DZI", "filename": image_path}
 
-
 @app.get("/api/get_dzi_info")
 async def get_dzi_info():
-    # Busca todos los archivos .dzi en la carpeta "dzi"
     dzi_files = glob.glob("dzi/*.dzi")
-
+    
     if not dzi_files:
-        raise HTTPException(status_code=404, detail="No se encontraron archivos DZI")
+        dzi_url = f"http://127.0.0.1:8000/dzi/sample.dzi"
+        return {"filename": dzi_url}
 
     latest_dzi = max(dzi_files, key=os.path.getctime)
-
-    # Construye la URL completa (ajusta esto según la configuración de tu servidor)
     dzi_url = f"http://127.0.0.1:8000/{latest_dzi}"
 
     return {"filename": dzi_url}
 
-
 @app.get("/dzi/{filename}")
 async def read_dzi(filename: str):
     file_path = f"{DZI_FOLDER}/{filename}"
+    
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Archivo no encontrado")
     
