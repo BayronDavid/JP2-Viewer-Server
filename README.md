@@ -12,9 +12,10 @@ This project provides an API for image processing using the FastAPI framework. I
 - Docker
 - Git
 - Visual Studio Code with the Remote 
-- Extensions 
-![Alt text](image-1.png)
-![Alt text](image-2.png)
+- Extensions
+  
+   ![Alt text](image-1.png)
+   ![Alt text](image-2.png)
 
 ### Setup
 
