@@ -1,9 +1,8 @@
+# JPG2000 Web Viewer - Server
 
-# JP200 WEB VIEWER - SERVER 
+## Description 
+This application serves as a web-based viewer for JPG2000 images, utilizing the FastAPI framework to provide backend services. The system facilitates the uploading and processing of JPG2000 images, dynamically generating Deep Zoom Images (DZI) to enable efficient, high-quality viewing experiences on the web. Designed with a focus on performance and scalability, the API ensures a seamless integration with front-end applications, providing a robust solution for managing and displaying high-resolution images in various web environments.
 
-## Description
-
-This project provides an API for image processing using the FastAPI framework. It is designed to be run within a containerized development environment to ensure consistent development and deployment workflows.
 
 ## Getting Started
 
