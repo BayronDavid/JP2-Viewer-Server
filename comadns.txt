@@ -1,3 +1,5 @@
-Correr server con uviconr :
+1. Reopen container - Dev Containers - Extension 
+2. uvicorn main:app --reload
 
-uvicorn main:app --reload
+
+

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -35,23 +35,28 @@ if os.path.exists(DEFAULT_IMAGE_PATH):
     subprocess.run(["vips", "dzsave", DEFAULT_IMAGE_PATH, DEFAULT_DZI_PATH])
 
 @app.post("/upload/")
-async def upload_image(file: UploadFile = File(...)):
-    # Generar un identificador único para la imagen
+async def upload_image(file: UploadFile = File(...), format: str = Form(...)):
     unique_id = uuid.uuid4().hex
     image_path = f"{TEMP_FOLDER}/{unique_id}.jp2"
     dzi_path = f"{DZI_FOLDER}/{unique_id}"
-
+    
     # Guardar la nueva imagen
     with open(Path(image_path), "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
+    # Ajustar opciones basadas en el formato
+    suffix_option = f".{format}"
+    if format == "webp":
+        # Especificar calidad para webp si es necesario, o ajustar según necesidad
+        suffix_option += "[Q=80]"
+    
     # Generar el archivo DZI
-    process = subprocess.run(["vips", "dzsave", image_path, dzi_path])
+    process = subprocess.run(["vips", "dzsave", image_path, dzi_path, "--suffix", suffix_option])
 
     if process.returncode == 0:
-        return {"message": "Imagen cargada y DZI generado con éxito", "filename": f"{dzi_path}.dzi"}
+        return {"message": "Imagen cargada y DZI generado con éxito", "filename": f"{dzi_path}.{format}.dzi"}
     else:
-        return {"message": "Error al generar DZI", "filename": image_path}
+        raise HTTPException(status_code=500, detail="Error al generar DZI")
 
 @app.get("/api/get_dzi_info")
 async def get_dzi_info():
