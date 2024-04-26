@@ -1,7 +1,7 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException, Form, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from pathlib import Path
 import shutil
 import glob
@@ -14,10 +14,11 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://127.0.0.1:5502"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
+    expose_headers=["Access-Control-Allow-Origin"] 
 )
 app.mount("/dzi", StaticFiles(directory="dzi"), name="dzi")
 
