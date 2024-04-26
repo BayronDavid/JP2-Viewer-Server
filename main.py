@@ -25,6 +25,9 @@ DZI_FOLDER = "dzi"
 DEFAULT_IMAGE_PATH = "temp/sample.jp2"
 DEFAULT_DZI_PATH = f"{DZI_FOLDER}/sample"
 
+
+THUMBNAIL_LEVELS = [8, 7, 4, 2] 
+
 # Verificar si las carpetas existen, de lo contrario, crearlas
 for folder in [TEMP_FOLDER, DZI_FOLDER]:
     if not os.path.exists(folder):
@@ -73,22 +76,24 @@ async def list_images():
         dzi_path = f"{DZI_FOLDER}/{unique_id}.dzi"
         if os.path.exists(dzi_path):
             stats = Path(dzi_path).stat()
-            images.append({
-                "filename": original_name,
-                "id": unique_id,
-                "size": stats.st_size,
-                "modified_time": stats.st_mtime
-            })
-    return images
 
+            # Buscar miniatura en los niveles de zoom
+            thumbnail_url = find_thumbnail(dzi_path, unique_id)
+            if thumbnail_url:
+                images.append({
+                    "filename": original_name,
+                    "id": unique_id,
+                    "size": stats.st_size,
+                    "modified_time": stats.st_mtime,
+                    "thumbnail_url": thumbnail_url
+                })
+    return images
 @app.delete("/api/delete_image/{image_id}")
 async def delete_image(image_id: str):
     paths_to_delete = glob.glob(f"{TEMP_FOLDER}/{image_id}.*") + glob.glob(f"{DZI_FOLDER}/{image_id}.*") + glob.glob(f"{TEMP_FOLDER}/{image_id}_metadata.txt")
     for file in paths_to_delete:
         os.remove(file)
     return {"message": "Imagen eliminada con éxito"}
-
-
 
 @app.get("/api/get_dzi_info")
 async def get_dzi_info(image_id: str = None):
@@ -103,7 +108,6 @@ async def get_dzi_info(image_id: str = None):
         # Si no se proporciona un ID, devolver el DZI de muestra
         sample_dzi_path = f"http://127.0.0.1:8000/dzi/sample.dzi"
         return {"filename": sample_dzi_path}
-
 
 @app.get("/dzi/{filename}")
 async def read_dzi(filename: str):
@@ -120,3 +124,14 @@ async def read_dzi(filename: str):
             "Access-Control-Allow-Headers": "Content-Type",
         }
     )
+
+
+def find_thumbnail(dzi_path, unique_id):
+    for level in THUMBNAIL_LEVELS:
+        level_folder = f"{DZI_FOLDER}/{unique_id}_files/{level}"
+        if os.path.exists(level_folder):
+            files = os.listdir(level_folder)
+            if files:  # Verificar si hay archivos en la carpeta
+                first_file = files[0]  # Tomar el primer archivo
+                return f"http://127.0.0.1:8000/{level_folder}/{first_file}"
+    return None
