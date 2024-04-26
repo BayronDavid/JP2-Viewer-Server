@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException, Form
+from fastapi import FastAPI, File, UploadFile, HTTPException, Form, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -37,9 +37,10 @@ if os.path.exists(DEFAULT_IMAGE_PATH):
 @app.post("/upload/")
 async def upload_image(file: UploadFile = File(...), format: str = Form(...)):
     unique_id = uuid.uuid4().hex
+    original_name = file.filename.rsplit('.', 1)[0]  # Guarda el nombre original sin extensión
     image_path = f"{TEMP_FOLDER}/{unique_id}.jp2"
     dzi_path = f"{DZI_FOLDER}/{unique_id}"
-    
+
     # Guardar la nueva imagen
     with open(Path(image_path), "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
@@ -47,16 +48,35 @@ async def upload_image(file: UploadFile = File(...), format: str = Form(...)):
     # Ajustar opciones basadas en el formato
     suffix_option = f".{format}"
     if format == "webp":
-        # Especificar calidad para webp si es necesario, o ajustar según necesidad
         suffix_option += "[Q=80]"
-    
+
     # Generar el archivo DZI
     process = subprocess.run(["vips", "dzsave", image_path, dzi_path, "--suffix", suffix_option])
 
     if process.returncode == 0:
-        return {"message": "Imagen cargada y DZI generado con éxito", "filename": f"{dzi_path}.{format}.dzi"}
+        return {"message": "Imagen cargada y DZI generado con éxito", "filename": f"{original_name}.{format}.dzi", "id": unique_id}
     else:
         raise HTTPException(status_code=500, detail="Error al generar DZI")
+
+@app.get("/api/list_images")
+async def list_images():
+    images = []
+    for dzi_file in glob.glob("dzi/*.dzi"):
+        file_path = Path(dzi_file)
+        stats = file_path.stat()
+        images.append({
+            "filename": file_path.stem,  # El nombre base sin la extensión
+            "size": stats.st_size,
+            "modified_time": stats.st_mtime
+        })
+    return images
+
+@app.delete("/api/delete_image/{image_id}")
+async def delete_image(image_id: str):
+    # Busca y elimina el archivo de imagen original y su DZI correspondiente
+    for file in glob.glob(f"{TEMP_FOLDER}/{image_id}.*") + glob.glob(f"{DZI_FOLDER}/{image_id}.*"):
+        os.remove(file)
+    return {"message": "Imagen eliminada con éxito"}
 
 @app.get("/api/get_dzi_info")
 async def get_dzi_info():

@@ -1,21 +1,20 @@
-# Usar una imagen base de Python
-FROM python:3.9
+FROM python:3.9-slim
 
-# Instalar libvips y OpenJPG
-RUN apt-get update && apt-get install -y libvips-dev libopenjp2-7
+ENV DEBIAN_FRONTEND=noninteractive
 
-# Establecer el directorio de trabajo en /app
+RUN apt-get update -y \
+    && apt-get install -y --no-install-recommends apt-utils \
+    && apt-get upgrade -y \
+    && apt-get install -y libopenjp2-7 libvips-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
-# Copiar el archivo de requerimientos e instalar las dependencias
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir fastapi==0.68.0 uvicorn==0.15.0 pydantic==1.8.2 python-multipart==0.0.6 aiofiles
 
-# Copiar el resto del código fuente
 COPY . .
 
-# Exponer el puerto donde se ejecutará FastAPI
 EXPOSE 8000
 
-# Comando para ejecutar la aplicación usando Uvicorn
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
